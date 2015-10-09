@@ -1,8 +1,8 @@
 module HashTable (
                  retrKeys, retrValues,
-	               count, update, delete,
-		             valueOf, keyOf
-		             ) where
+	         count, update, delete,
+		 valueOf, keyOf
+		 ) where
 import SideChain
 
 data By a b = Key a | Value b | Tuple a b
