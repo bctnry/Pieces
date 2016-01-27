@@ -1,3 +1,4 @@
+{-- 20151009
 -- SideChain.hs
 -- There are two operators that I found useful at some times.
 -- Don't know if someone have invented the idea before, nor do I know if someone 
@@ -10,3 +11,15 @@ module SideChain ((<~>), (<::>)) where
 
 (<::>) :: (a -> (b,c)) -> (b -> c -> d) -> (a -> d)
 (<::>) f1 f2 = (\x -> (f2 (fst (f1 x)) (snd (f1 x)))) 
+--}
+
+module SideChain ((<~>),(<|~>),(<~$>)) where
+
+(<~>) :: (a -> [b]) -> (a -> b) -> (a -> [b])
+(<~>) x y = \z -> (x z):(y z)
+
+(<|~>) :: (a -> [b])
+(<|~>) _ = []
+
+(<~$>) :: (a -> [b]) -> a -> [b]
+(<~$>) = $
