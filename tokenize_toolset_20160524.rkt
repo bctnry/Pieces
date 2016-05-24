@@ -150,3 +150,12 @@
 
 (: _FAIL ParseC)
 (define (_FAIL x) #F)
+
+(: _MUTE (-> ParseC ParseC))
+(define (_MUTE X) (>> X _ZERO))
+
+(: _OPTIONAL (-> ParseC ParseC))
+(define (_OPTIONAL x) (_OR x _ZERO))
+
+(: _ZERO/ONEOF (-> String AsClause ParseC))
+(define (_ZERO/ONEOF x as) (_OPTIONAL (_ONEOF x as)))
