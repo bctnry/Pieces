@@ -159,3 +159,6 @@
 
 (: _ZERO/ONEOF (-> String AsClause ParseC))
 (define (_ZERO/ONEOF x as) (_OPTIONAL (_ONEOF x as)))
+
+(: mkMute (-> (-> String AsClause ParseC) String ParseC))
+(define (mkMute pcmake str) (_MUTE (pcmake str _SAME)))
