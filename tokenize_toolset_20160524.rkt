@@ -170,3 +170,10 @@
              "forall    x    ,    t    "
              "exists    y    ,    v    "
              "exxxx v a , t"))
+; ==> 
+; '(("forall x,t" "" (forall (ID "x") (EXPR "t")))
+;   #f
+;   ("forall    x    ,    t" "    " (forall (ID "x") (EXPR "t")))
+;   ("exists    y    ,    v" "    " (exists (ID "y") (EXPR "v")))
+;   #f)
+
