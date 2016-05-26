@@ -1,4 +1,5 @@
 #lang typed/racket
+(provide (all-defined-out))
 (define _UPPERCASE "ABCDEFGHIJKLMNOPQRSTUVWXYZ")
 (define _LOWERCASE "abcdefghijklmnopqrstuvwxyz")
 (define _NUMBERS "0123456789")
@@ -11,6 +12,9 @@
 (define-type ParseM (U #F (List String String (Listof Any))))
 (define-type ParseC (-> String ParseM))
 (define-type AsClause (-> String Any))
+
+(: _FAIL ParseC)
+(define (_FAIL x) #F)
 
 (: elem (All (A) (-> (-> A A Boolean) A (Listof A) Boolean)))
 (define (elem eqpred x l)
@@ -67,13 +71,15 @@
            (_EXCLUDE strex (list->string chs))
            (string-append (list->string (list ch)) (_EXCLUDE strex (list->string chs))))])))
 
-(: _WITH (-> String String String)) (define _WITH string-append)
+(: _WITH (-> String * String)) (define _WITH string-append)
 
-(: _OR (-> ParseC ParseC ParseC))
-(define (_OR pc1 pc2)
-  (lambda (t)
-    (let ([pc1res (pc1 t)])
-      (if (eq? pc1res #F) (pc2 t) pc1res))))
+(: _OR (-> ParseC ParseC * ParseC))
+(define (_OR fst . rst)
+  (match rst ['() fst]
+    [(cons pc1 pcs)
+     (lambda (t)
+       (let ([fstres (fst t)])
+         (if (eq? fstres #F) ((apply _OR pc1 pcs) t) fstres)))]))
 
 (: _EXACT (-> String AsClause ParseC))
 (define (_EXACT str as)
@@ -101,6 +107,11 @@
               nres2
               (append tokenl tokenl2))])]))
 
+(: _AND (-> ParseC ParseC * ParseC))
+(define (_AND pc1 . rst)
+  (match rst ['() pc1]
+    [(cons p2 ps) (lambda (t) (>>= (pc1 t) (apply _AND p2 ps)))]))
+
 ; pass to 2 parserc and forget the effect of the first.
 (: >> (-> ParseC ParseC ParseC))
 (define (>> x y)
@@ -126,30 +137,12 @@
           (list (string-append res1 nres1)
                 nres2 tokenl)])])))
 
-(: _AND (-> ParseC ParseC ParseC))
-(define (_AND x y) (lambda (t) (>>= (x t) y)))
-
-(: _ORsx (-> (Listof ParseC) ParseC ParseC))
-(define (_ORsx l endc)
-  (match l ['() endc] [(cons x xs) (_OR x (_ORsx xs endc))]))
-(: _ORs (-> (Listof ParseC) ParseC))
-(define (_ORs l) (_ORsx l _ZERO))
-
-(: _ANDsx (-> (Listof ParseC) ParseC ParseC))
-(define (_ANDsx l endc)
-  (match l ['() endc] [(cons x xs) (_AND x (_ANDsx xs endc))]))
-(: _ANDs (-> (Listof ParseC) ParseC))
-(define (_ANDs x) (_ANDsx x _ZERO))
-
 (: mkFix (-> ParseC ParseC ParseC))
 (define (mkFix fstc endc)
   (lambda (t)
     (let ([res (fstc t)])
       (match res [#F (endc t)]
         [_ (>>= res (mkFix fstc endc))]))))
-
-(: _FAIL ParseC)
-(define (_FAIL x) #F)
 
 (: _MUTE (-> ParseC ParseC))
 (define (_MUTE X) (>> X _ZERO))
@@ -160,5 +153,20 @@
 (: _ZERO/ONEOF (-> String AsClause ParseC))
 (define (_ZERO/ONEOF x as) (_OPTIONAL (_ONEOF x as)))
 
-(: mkMute (-> (-> String AsClause ParseC) String ParseC))
-(define (mkMute pcmake str) (_MUTE (pcmake str _SAME)))
+; sample code
+(: sample ParseC)
+(define sample
+  (_AND (_OR (_EXACT "forall" (_AS 'forall))
+             (_EXACT "exists" (_AS 'exists)))
+        (_MUTE (_MULTIOF " " _SAME))
+        (_MULTIOF _CHARS (lambda (t) (list 'ID t)))
+        (_OPTIONAL (_MUTE (_MULTIOF " " _SAME)))
+        (_MUTE (_EXACT "," _SAME))
+        (_OPTIONAL (_MUTE (_MULTIOF " " _SAME)))
+        (_MULTIOF _CHARS (lambda (t) (list 'EXPR t)))))
+(map sample (list
+             "forall x,t"
+             "forallx,t"
+             "forall    x    ,    t    "
+             "exists    y    ,    v    "
+             "exxxx v a , t"))
