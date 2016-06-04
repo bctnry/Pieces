@@ -13,7 +13,7 @@
          [y (- (random 1 height) 1)]
          [w (let ([w_ (random 1 width)])
               (if (> (+ w_ x) width) (- width x) w_))]
-         [h (let ([h_ (random 1 width)])
+         [h (let ([h_ (random 1 height)])
               (if (> (+ h_ y) height) (- height y) h_))])
     (begin
       (send dc set-brush (new brush% [color (colorgen)]))
@@ -29,7 +29,7 @@
     (send dc set-pen (new pen% [style 'transparent]))
     (send dc draw-rectangle 0 0 height width)))
 (define (mkRanCanvas height width colorgen t)
-  (let* ([canvas (make-bitmap height width)]
+  (let* ([canvas (make-bitmap width height)]
          [dc (new bitmap-dc% [bitmap canvas])])
     (begin (background dc height width (make-object color% 255 255 255))
            (randomD dc height width colorgen t)
