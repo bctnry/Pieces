@@ -1,0 +1,58 @@
+#lang racket/base
+(require racket/class)
+(require racket/gui)
+
+(define board '())
+(define (new-board)
+  (set! board
+    (for/vector ([i (in-range 0 5)])
+      (for/vector ([j (in-range 0 5)])
+        (random 2)))))
+(new-board)
+(define (board-at x y) (vector-ref (vector-ref board y) x))
+(define (switch-light-singl x y)
+  (let ((v (vector-ref (vector-ref board y) x)))
+    (vector-set! (vector-ref board y) x (if (= v 0) 1 0))))
+(define (switch-light x y)
+  (let ((lights
+         (filter (λ (t) (and
+                          (>= (car t) 0) (<= (car t) 4)
+                          (>= (cdr t) 0) (<= (cdr t) 4)))
+                 (list (cons x y) (cons (- x 1) y) (cons (+ x 1) y)
+                       (cons x (- y 1)) (cons x (+ y 1))))))
+    (for ([i lights]) (switch-light-singl (car i) (cdr i)))))
+(define (isComplete?)
+  (= (for/sum ((i (for/list ([i board]) (for/sum ([j i]) j)))) i) 0))
+                              
+(define frmMain
+  (new frame%
+       (label "Lights Out")
+       (stretchable-width #f) (stretchable-height #f)
+       ))
+(define canvasMain
+  (new (class canvas% (super-new)
+         (define dc (send this get-dc))
+         (define/override (on-char e)
+           (when (char=? (send e get-key-code) #\r)
+             (begin (new-board)
+                    (send this on-paint))))
+         (define/override (on-event e)
+           (when (send e button-down?)
+             (let ((x (send e get-x)) (y (send e get-y)))
+               (begin (switch-light (quotient x 25) (quotient y 25))
+                      (send this on-paint)
+                      (when (isComplete?) (send frmWin show #t)))))
+           )
+         (define/override (on-paint)
+           (for ([i (in-range 0 5)])
+             (for ([j (in-range 0 5)])
+               (begin
+                 (send dc set-brush (if (= (board-at i j) 1) "orange" "white") 'solid)
+                 (send dc draw-rectangle (* i 25) (* j 25) 25 25)
+                 ))))
+         )
+       (parent frmMain)
+       (min-width 125) (min-height 125)))
+(define frmWin (new frame% (label "") (stretchable-width #f) (stretchable-height #f)))
+(define msgWin (new message% (label "You win! Press R to start another level.") (parent frmWin)))
+(send frmMain show #t)
